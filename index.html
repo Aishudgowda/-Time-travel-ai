@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>Time Travel AI</title>
 
   <style>
@@ -14,114 +15,145 @@
     }
 
     body {
-      background: #f5f7ff;
-      color: #17172b;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #080b18, #171b3d);
+      color: white;
     }
 
     .container {
+      width: 100%;
       max-width: 900px;
       margin: auto;
-      padding: 30px 20px;
+      padding: 50px 20px;
       text-align: center;
     }
 
+    .logo {
+      font-size: 18px;
+      font-weight: bold;
+      letter-spacing: 2px;
+      margin-bottom: 50px;
+    }
+
     h1 {
-      font-size: 46px;
-      margin-top: 50px;
+      font-size: 52px;
+      line-height: 1.1;
+      margin-bottom: 20px;
     }
 
     .subtitle {
+      color: #b8bdd8;
       font-size: 18px;
-      margin: 18px auto 35px;
-      color: #666;
-      max-width: 600px;
+      max-width: 620px;
+      margin: 0 auto 40px;
     }
 
     .card {
-      background: white;
-      border-radius: 24px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 25px;
       padding: 35px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+      backdrop-filter: blur(15px);
     }
 
     .upload {
-      border: 2px dashed #aaa;
-      border-radius: 18px;
+      display: block;
+      border: 2px dashed #777da8;
+      border-radius: 20px;
       padding: 45px 20px;
       cursor: pointer;
+      transition: 0.2s;
     }
 
     .upload:hover {
-      border-color: #555;
+      border-color: white;
+      background: rgba(255,255,255,0.05);
     }
 
     .upload input {
       display: none;
     }
 
+    .upload-icon {
+      font-size: 45px;
+      margin-bottom: 15px;
+    }
+
     .upload-title {
       font-size: 22px;
       font-weight: bold;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
 
     .upload-text {
-      color: #777;
+      color: #aaaec7;
+    }
+
+    #preview {
+      display: none;
+      width: 100%;
+      max-width: 350px;
+      max-height: 400px;
+      object-fit: cover;
+      margin: 25px auto;
+      border-radius: 18px;
+    }
+
+    .choose-title {
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-size: 18px;
     }
 
     .years {
       display: flex;
       justify-content: center;
-      gap: 15px;
-      margin: 30px 0;
+      gap: 12px;
       flex-wrap: wrap;
+      margin-bottom: 25px;
     }
 
     .year {
-      padding: 15px 28px;
-      border: 2px solid #ddd;
+      padding: 14px 24px;
       border-radius: 14px;
-      background: white;
+      border: 1px solid #555b82;
+      background: transparent;
+      color: white;
       cursor: pointer;
-      font-size: 17px;
+      font-size: 16px;
     }
 
     .year.selected {
-      border-color: #111;
-      background: #111;
-      color: white;
+      background: white;
+      color: #101226;
+      border-color: white;
     }
 
     .generate {
+      width: 100%;
+      max-width: 400px;
+      padding: 17px;
       border: none;
-      background: #111;
-      color: white;
-      padding: 17px 35px;
-      border-radius: 14px;
-      font-size: 18px;
+      border-radius: 15px;
+      background: white;
+      color: #101226;
+      font-size: 17px;
+      font-weight: bold;
       cursor: pointer;
     }
 
     .generate:hover {
-      opacity: 0.85;
+      transform: translateY(-1px);
     }
 
-    #preview {
-      max-width: 100%;
-      max-height: 350px;
-      margin-top: 25px;
-      border-radius: 16px;
-      display: none;
-    }
-
-    .result {
-      margin-top: 30px;
-      color: #666;
+    #message {
+      margin-top: 20px;
+      color: #b8bdd8;
     }
 
     @media (max-width: 600px) {
       h1 {
-        font-size: 34px;
+        font-size: 38px;
       }
 
       .card {
@@ -135,25 +167,39 @@
 
   <div class="container">
 
+    <div class="logo">⌛ TIME TRAVEL AI</div>
+
     <h1>See Yourself Across Time</h1>
 
     <p class="subtitle">
-      Upload your photo and imagine how you could look in different eras.
+      Upload your photo and discover an AI-created version of yourself
+      in the past or future.
     </p>
 
     <div class="card">
 
       <label class="upload">
-        <input type="file" accept="image/*" id="photoInput">
-        <div class="upload-title">📸 Upload Your Photo</div>
+        <input type="file" id="photoInput" accept="image/*">
+
+        <div class="upload-icon">📸</div>
+
+        <div class="upload-title">
+          Upload Your Photo
+        </div>
+
         <div class="upload-text">
-          Choose a clear photo of yourself
+          Choose a clear photo to begin
         </div>
       </label>
 
-      <img id="preview" alt="Photo preview">
+      <img id="preview" alt="Uploaded photo">
+
+      <div class="choose-title">
+        Choose your time period
+      </div>
 
       <div class="years">
+
         <button class="year" onclick="selectYear(this, '2000')">
           🕰️ 2000
         </button>
@@ -165,50 +211,69 @@
         <button class="year" onclick="selectYear(this, '2075')">
           🚀 2075
         </button>
+
       </div>
 
-      <button class="generate" onclick="generatePreview()">
-        Generate My Time Travel
+      <button class="generate" onclick="generate()">
+        Generate My Time Travel ✨
       </button>
 
-      <div class="result" id="result"></div>
+      <div id="message"></div>
 
     </div>
 
   </div>
 
   <script>
+
     let selectedYear = "";
 
     function selectYear(button, year) {
-      document.querySelectorAll(".year").forEach(btn => {
+
+      document.querySelectorAll(".year").forEach(function(btn) {
         btn.classList.remove("selected");
       });
 
       button.classList.add("selected");
+
       selectedYear = year;
     }
 
     document.getElementById("photoInput").addEventListener("change", function(event) {
+
       const file = event.target.files[0];
 
       if (file) {
+
         const preview = document.getElementById("preview");
+
         preview.src = URL.createObjectURL(file);
+
         preview.style.display = "block";
       }
+
     });
 
-    function generatePreview() {
-      if (!selectedYear) {
-        document.getElementById("result").innerText =
-          "Please choose a year first.";
+    function generate() {
+
+      const file = document.getElementById("photoInput").files[0];
+
+      const message = document.getElementById("message");
+
+      if (!file) {
+        message.innerText = "Please upload a photo first.";
         return;
       }
 
-      document.getElementById("result").innerText =
-        "AI generation will appear here.";
+      if (!selectedYear) {
+        message.innerText = "Please choose a year first.";
+        return;
+      }
+
+      message.innerText =
+        "✨ AI generation will be connected here next...";
     }
+
   </script>
 
 </body>

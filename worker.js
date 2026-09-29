@@ -26,9 +26,9 @@ export default {
           );
         }
 
-        if (!env.OPENAI_API_KEY) {
+        if (!env.AI) {
           return Response.json(
-            { error: "OPENAI_API_KEY is not configured." },
+            { error: "Workers AI binding is not configured." },
             { status: 500 }
           );
         }
@@ -36,6 +36,7 @@ export default {
         let style = "";
 
         if (year === "2000") {
+
           style = `
 Make the uploaded photograph realistically look like it
 was taken around the year 2000.
@@ -44,21 +45,12 @@ Use authentic early-2000s clothing, hairstyles,
 technology, objects, colors and surroundings.
 
 Remove modern-looking details where appropriate.
-Keep the result photorealistic.
+
+Keep the result photorealistic and natural.
 `;
-        }
 
-        else if (year === "2026") {
-          style = `
-Keep the uploaded photograph realistic and contemporary,
-representing the year 2026.
+        } else if (year === "2075") {
 
-Use realistic modern clothing, technology,
-architecture and surroundings.
-`;
-        }
-
-        else if (year === "2075") {
           style = `
 Transform the uploaded photograph into a believable
 vision of the year 2075.
@@ -66,15 +58,41 @@ vision of the year 2075.
 Use realistic futuristic clothing, architecture,
 transportation, technology and surroundings.
 
-Keep everything photorealistic and believable.
+The future should look advanced but believable.
+
+Keep everything photorealistic.
+
 Do not make it cartoon-like.
 `;
-        }
 
-        else {
+        } else if (
+          year === "bw" ||
+          year === "black-white" ||
+          year === "blackwhite"
+        ) {
+
           style = `
-Make the uploaded photograph realistically represent
-the year ${year}.
+Convert the uploaded photograph into a beautiful
+high-quality realistic black and white photograph.
+
+Keep the person's identity, face, pose and composition.
+
+Use natural realistic grayscale tones,
+professional photography quality,
+good contrast and detailed facial features.
+
+Do not change the person's identity.
+`;
+
+        } else {
+
+          style = `
+Keep the uploaded photograph realistic and contemporary.
+
+Preserve the person's identity and appearance.
+
+Use realistic modern clothing, technology,
+architecture and surroundings.
 `;
         }
 
@@ -83,88 +101,120 @@ Edit the uploaded photograph.
 
 ${style}
 
-Very important:
+VERY IMPORTANT:
 
 Keep the same person recognizable.
 
 Preserve the person's facial identity,
-facial structure, pose and overall appearance
-as much as possible.
+facial structure, facial proportions,
+pose and overall appearance as much as possible.
 
-Do not replace the person with another person.
+Do NOT replace the person with another person.
+
+Do NOT create a different face.
 
 Only change clothing, surroundings, objects,
-technology and other details necessary to represent
-the selected year.
+technology, colors and other details necessary
+for the selected transformation.
 
-Create a realistic high-quality photograph.
+The final image must look like a real photograph
+taken with a high-quality camera.
 
-Selected year: ${year}
+Natural skin texture.
+Realistic lighting.
+Realistic shadows.
+Realistic details.
+
+Selected transformation: ${year}
 `;
 
-        const response = await fetch(
-          "https://api.openai.com/v1/responses",
-          {
-            method: "POST",
+        /*
+          Convert the incoming data URL into binary image data.
+        */
 
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${env.OPENAI_API_KEY}`
-            },
-
-            body: JSON.stringify({
-
-              model: "gpt-5.6-luna",
-
-              input: [
-                {
-                  role: "user",
-                  content: [
-                    {
-                      type: "input_text",
-                      text: prompt
-                    },
-                    {
-                      type: "input_image",
-                      image_url: image
-                    }
-                  ]
-                }
-              ],
-
-              tools: [
-                {
-                  type: "image_generation",
-                  model: "gpt-image-2",
-                  action: "edit",
-                  size: "1024x1024",
-                  quality: "medium"
-                }
-              ]
-            })
-          }
+        const matches = image.match(
+          /^data:(.+?);base64,(.+)$/
         );
 
-        const data = await response.json();
-
-        if (!response.ok) {
+        if (!matches) {
           return Response.json(
-            {
-              error:
-                data?.error?.message ||
-                "OpenAI image generation failed."
-            },
-            {
-              status: response.status
-            }
+            { error: "Invalid image format." },
+            { status: 400 }
           );
         }
 
-        const imageResult = data.output?.find(
-          item => item.type === "image_generation_call"
+        const contentType = matches[1];
+        const base64Data = matches[2];
+
+        const binaryString = atob(base64Data);
+
+        const bytes = new Uint8Array(
+          binaryString.length
         );
 
-        if (!imageResult?.result) {
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const imageBlob = new Blob(
+          [bytes],
+          { type: contentType }
+        );
+
+        /*
+          Create multipart form data for FLUX.2 Klein 4B.
+        */
+
+        const form = new FormData();
+
+        form.append(
+          "prompt",
+          prompt
+        );
+
+        form.append(
+          "input_image_0",
+          imageBlob,
+          "input.png"
+        );
+
+        form.append(
+          "width",
+          "1024"
+        );
+
+        form.append(
+          "height",
+          "1024"
+        );
+
+        /*
+          Serialize FormData so Cloudflare can send
+          the correct multipart boundary.
+        */
+
+        const formResponse = new Response(form);
+
+        const formStream = formResponse.body;
+
+        const formContentType =
+          formResponse.headers.get("content-type");
+
+        /*
+          Run Cloudflare Workers AI.
+        */
+
+        const result = await env.AI.run(
+          "@cf/black-forest-labs/flux-2-klein-4b",
+          {
+            multipart: {
+              body: formStream,
+              contentType: formContentType
+            }
+          }
+        );
+
+        if (!result || !result.image) {
           return Response.json(
             {
               error: "AI did not return an image."
@@ -176,7 +226,7 @@ Selected year: ${year}
         }
 
         return Response.json({
-          image: `data:image/png;base64,${imageResult.result}`,
+          image: `data:image/png;base64,${result.image}`,
           year: year
         });
 
@@ -184,13 +234,14 @@ Selected year: ${year}
 
         return Response.json(
           {
-            error: error?.message || "Server error."
+            error:
+              error?.message ||
+              "Cloudflare AI generation failed."
           },
           {
             status: 500
           }
         );
-
       }
     }
 

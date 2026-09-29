@@ -179,8 +179,8 @@
     <div class="card">
 
       <label class="upload">
-        <input type="file" id="photoInput" accept="image/*">
-
+<input type="file" id="photoInput" accept="image/*"
+onchange="document.getElementById('preview').src=URL.createObjectURL(this.files[0]); document.getElementById('preview').style.display='block';">
         <div class="upload-icon">📸</div>
 
         <div class="upload-title">

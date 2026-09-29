@@ -1,9 +1,13 @@
-"assets": {
-  "directory": ".",
-  "binding": "ASSETS",
-  "run_worker_first": ["/api/*"]
-},
-"ai": {
-  "binding": "AI"
-}
+{
+  "name": "time-travel-ai",
+  "main": "./worker.js",
+  "compatibility_date": "2026-09-25",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "ai": {
+    "binding": "AI"
+  }
 }

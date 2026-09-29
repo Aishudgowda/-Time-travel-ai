@@ -4,9 +4,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type"
 };
 
-function json(data, status = 200) {
+function json(data, status) {
   return new Response(JSON.stringify(data), {
-    status,
+    status: status || 200,
     headers: {
       "Content-Type": "application/json",
       ...corsHeaders
@@ -25,7 +25,7 @@ export default {
 
     const url = new URL(request.url);
 
-    if (url.pathname === "/api/test" && request.method === "GET") {
+    if (url.pathname === "/api/test") {
       return json({
         success: true,
         message: "Time Travel AI is working"
@@ -48,7 +48,7 @@ export default {
 
         let base64 = image;
 
-        if (base64.includes(",")) {
+        if (base64.indexOf(",") !== -1) {
           base64 = base64.split(",")[1];
         }
 
@@ -63,23 +63,74 @@ export default {
           type: "image/jpeg"
         });
 
-        let prompt = "";
+        let prompt;
 
         if (option === "bw") {
-          prompt =
-            "Convert the uploaded photograph into a PREMIUM REALISTIC BLACK INK OUTLINE DRAWING. " +
-            "This is an image-to-image transformation, not a new person. " +
-            "Preserve the SAME PERSON and preserve facial identity, face shape, eyes, eyebrows, nose, lips, jawline, hairstyle and body proportions. " +
-            "The face must remain clearly recognizable as the person in the reference photograph. " +
-            "Do not invent a different face. " +
-            "Use ONLY black ink and graphite pencil lines on clean white paper. " +
-            "No color. No painted face. No photorealistic color rendering. No cartoon style. " +
-            "Create detailed clean contours and fine linework around the eyes, nose, lips, hair and clothing. " +
-            "Keep realistic human anatomy and realistic proportions. " +
-            "Add elegant TIME TRAVEL design elements around the subject: a detailed clock, clock gears, a small vintage aeroplane and subtle time-travel motion lines. " +
-            "These decorative elements must stay around the subject and must not cover the face. " +
-            "The final image must unmistakably look like a professional black-and-white outline/sketch artwork made from the original photograph.";
-
+          prompt = "Convert this exact reference photograph into a premium realistic black ink and graphite pencil outline drawing. Preserve the SAME PERSON and facial identity, face shape, eyes, eyebrows, nose, lips, jawline, hair and body proportions. The face must remain clearly recognizable. Do not create another person. Use only black ink and graphite lines on clean white paper. No color, no painted face, no cartoon, no 3D render. Create detailed professional contours and fine linework. Add elegant time travel decorations around the subject: a detailed clock, clock gears, a small aeroplane and subtle motion lines. Keep all decorations away from the face. The final result must clearly look like a professional black-and-white outline sketch made from the original photograph.";
         } else if (option === "2000") {
-          prompt =
-            "
+          prompt = "Create a realistic early-2000s photograph using this exact reference person. Preserve the same facial identity, face shape, eyes, eyebrows, nose, lips, jawline, hairstyle and body proportions. Do not create a different person. Change mainly the clothing, accessories, environment, technology and styling to authentic year 2000 and early-2000s appearance. Use genuine early-2000s fashion, hairstyles, objects and surroundings. Avoid modern smartphones, modern fashion and futuristic objects. Make it look like a real photograph taken around the year 2000, not a modern photograph with a vintage filter. Keep realistic skin, natural lighting and photographic detail.";
+        } else if (option === "2075") {
+          prompt = "Create a highly realistic year 2075 version of this exact reference person. Preserve the same facial identity, face shape, eyes, eyebrows, nose, lips, jawline, hairstyle and body proportions. Do not replace the person with another face. Change mainly the clothing, environment, technology and surroundings into a believable year 2075 future. Use realistic advanced technology, sophisticated futuristic clothing, believable architecture, advanced transportation and subtle holographic interfaces. Keep the person human and recognizable. Do not make the person a robot or cartoon. Use realistic skin, anatomy, lighting and high-detail photography.";
+        } else {
+          return json({
+            success: false,
+            error: "Invalid option"
+          }, 400);
+        }
+
+        const form = new FormData();
+
+        form.append("input_image_0", imageBlob);
+        form.append("prompt", prompt);
+        form.append("width", "1024");
+        form.append("height", "1024");
+        form.append("guidance", "7");
+
+        const formResponse = new Response(form);
+
+        const result = await env.AI.run(
+          "@cf/black-forest-labs/flux-2-klein-4b",
+          {
+            multipart: {
+              body: formResponse.body,
+              contentType: formResponse.headers.get("content-type")
+            }
+          }
+        );
+
+        if (!result || !result.image) {
+          return json({
+            success: false,
+            error: "AI did not return an image"
+          }, 500);
+        }
+
+        return json({
+          success: true,
+          image: "data:image/png;base64," + result.image
+        });
+
+      } catch (error) {
+        return json({
+          success: false,
+          error: error && error.message
+            ? error.message
+            : "Image generation failed"
+        }, 500);
+      }
+    }
+
+    const response = await env.ASSETS.fetch(request);
+    const headers = new Headers(response.headers);
+
+    Object.entries(corsHeaders).forEach(function(item) {
+      headers.set(item[0], item[1]);
+    });
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: headers
+    });
+  }
+};

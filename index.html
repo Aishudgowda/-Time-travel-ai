@@ -254,7 +254,76 @@
 
     });
 
-    function generate() {
+    async function generate() {
+
+  const file = document.getElementById("photoInput").files[0];
+  const message = document.getElementById("message");
+  const preview = document.getElementById("preview");
+
+  if (!file) {
+    message.innerText = "Please upload a photo first.";
+    return;
+  }
+
+  if (!selectedYear) {
+    message.innerText = "Please choose a year first.";
+    return;
+  }
+
+  message.innerText = "✨ Creating your time-travel photo... Please wait.";
+
+  try {
+
+    const reader = new FileReader();
+
+    reader.onload = async function () {
+
+      const image = reader.result;
+
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          image: image,
+          year: selectedYear
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "AI generation failed");
+      }
+
+      if (!data.image) {
+        throw new Error("No image received from AI");
+      }
+
+      preview.src = data.image;
+      preview.style.display = "block";
+
+      message.innerText =
+        "✨ Your " + selectedYear + " time-travel photo is ready!";
+
+    };
+
+    reader.onerror = function () {
+      throw new Error("Could not read the photo");
+    };
+
+    reader.readAsDataURL(file);
+
+  } catch (error) {
+
+    console.error(error);
+
+    message.innerText =
+      "❌ " + (error.message || "Something went wrong.");
+
+  }
+}
 
       const file = document.getElementById("photoInput").files[0];
 

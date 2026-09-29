@@ -1,76 +1,66 @@
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type"
+};
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      ...corsHeaders
+    }
+  });
+}
+
 export default {
   async fetch(request, env) {
-
-    const cors = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type"
-    };
-
     if (request.method === "OPTIONS") {
       return new Response(null, {
         status: 204,
-        headers: cors
+        headers: corsHeaders
       });
     }
 
-    const json = (data, status = 200) => {
-      return new Response(JSON.stringify(data), {
-        status,
-        headers: {
-          "Content-Type": "application/json",
-          ...cors
-        }
-      });
-    };
-
     const url = new URL(request.url);
 
-    if (
-      url.pathname === "/api/generate" &&
-      request.method === "POST"
-    ) {
+    // Test endpoint
+    if (url.pathname === "/api/test" && request.method === "GET") {
+      return json({
+        success: true,
+        message: "Time Travel AI is working"
+      });
+    }
+
+    // AI image generation
+    if (url.pathname === "/api/generate" && request.method === "POST") {
       try {
-
-        if (!env.AI) {
-          return json(
-            { error: "Workers AI binding is missing." },
-            500
-          );
-        }
-
         const body = await request.json();
 
         const image = body.image;
-        const option = body.option || body.year;
+        const option = body.option;
 
         if (!image) {
-          return json(
-            { error: "Photo is required." },
-            400
-          );
+          return json({
+            success: false,
+            error: "No image received"
+          }, 400);
         }
 
         if (!option) {
-          return json(
-            { error: "Please select an option." },
-            400
-          );
+          return json({
+            success: false,
+            error: "No option selected"
+          }, 400);
         }
 
-        const match = image.match(
-          /^data:(image\/[^;]+);base64,(.+)$/
-        );
+        // Convert base64 image to Blob
+        let base64 = image;
 
-        if (!match) {
-          return json(
-            { error: "Invalid image format." },
-            400
-          );
+        if (base64.includes(",")) {
+          base64 = base64.split(",")[1];
         }
-
-        const contentType = match[1];
-        const base64 = match[2];
 
         const binary = atob(base64);
         const bytes = new Uint8Array(binary.length);
@@ -80,129 +70,80 @@ export default {
         }
 
         const imageBlob = new Blob([bytes], {
-          type: contentType
+          type: "image/jpeg"
         });
 
-        let prompt;
+        let prompt = "";
 
         if (option === "bw") {
-
           prompt = `
-Use image 0 as the reference photograph.
+Create a premium realistic black ink and pencil outline sketch
+based directly on the uploaded person's photograph.
 
-Create a premium black-and-white OUTLINE PORTRAIT
-of the same person.
+IMPORTANT:
+Preserve the person's facial identity, face shape, eyes, nose, lips,
+hair, hairstyle, body proportions and recognizable appearance.
+Do not replace the person with another face.
+Do not make the person cartoon-like.
 
-Preserve the person's identity, face, facial structure,
-eyes, nose, mouth, hairstyle, head shape and pose.
+Convert the photograph into an elegant detailed black-and-white
+outline/sketch illustration on a mostly white background.
 
-The person must remain clearly recognizable.
+Use clean artistic ink and pencil lines, realistic anatomy,
+fine facial details and professional hand-drawn quality.
 
-Convert the photograph into detailed black ink and
-pencil line art on a mostly white background.
+Add subtle time-travel themed design elements around the person:
+a vintage clock, clock gears, small aeroplane illustration,
+and elegant time-travel motion lines.
 
-This MUST be an outline drawing, NOT a normal
-black-and-white photograph.
+The clock, gears and aeroplane must remain secondary decorations.
+The person's face and identity must remain the main focus.
 
-Add elegant time-travel artwork around the person:
-
-- detailed vintage clock
-- clock hands
-- mechanical clock gears
-- several gears
-- artistic airplane
-- time-travel motion lines
-- subtle mechanical sketch details
-
-Keep the person as the main subject.
-
-Professional illustration.
-Realistic proportions.
-Detailed fine line work.
-Elegant premium composition.
-
-Do not create a blank image.
-Do not remove the person.
-Do not replace the person.
-Do not distort the face.
-Do not make it childish or cartoon-like.
-Do not add text or logos.
+Premium realistic artwork, detailed line work, balanced composition,
+white background, no childish cartoon style.
 `;
 
         } else if (option === "2000") {
-
           prompt = `
-Use image 0 as the reference photograph.
+Transform the uploaded photograph into a highly realistic
+authentic early-2000s photograph.
 
-Transform the same person into a realistic photograph
-representing the year 2000.
+CRITICAL:
+Keep the exact same person.
+Preserve facial identity, face shape, eyes, nose, lips,
+skin characteristics, hairstyle and body proportions.
+Do NOT change the person's identity.
 
-Preserve the person's identity, face, facial structure,
-eyes, nose, mouth, hairstyle, body proportions and pose.
+Make the clothing, hairstyle, accessories, environment and visual
+style genuinely resemble the late 1990s / early 2000s period.
 
-Use authentic early-2000s clothing, hairstyles,
-technology, objects and surroundings.
+Use authentic early-2000s fashion, realistic fabrics and styling,
+period-appropriate surroundings, objects and technology.
 
-Remove clearly modern elements.
+Avoid modern smartphones, modern fashion, modern cars,
+modern buildings, modern accessories or futuristic elements.
 
-Create a realistic early-2000s photograph.
+The result should look like a real photograph taken around the year 2000,
+not like a modern photograph with a vintage filter.
 
-Do not replace the person.
-Do not distort the face.
-Do not make it cartoon-like.
-Do not add text or logos.
+Natural realistic lighting, realistic skin texture,
+realistic facial proportions and photographic detail.
 `;
 
         } else if (option === "2075") {
-
           prompt = `
-Use image 0 as the reference photograph.
+Transform the uploaded photograph into a highly realistic vision
+of the year 2075.
 
-Transform the same person into a realistic photograph
-representing a believable year 2075.
+CRITICAL:
+Keep the exact same person and preserve facial identity.
+Keep the face shape, eyes, nose, lips, hairstyle and body proportions
+recognizable.
 
-Preserve the person's identity, face, facial structure,
-eyes, nose, mouth, hairstyle, body proportions and pose.
+Create a believable futuristic world rather than a cartoon or fantasy scene.
 
-Use believable futuristic clothing, architecture,
-transportation and advanced technology.
+Use advanced but realistic 2075 technology, futuristic architecture,
+modern materials, subtle holographic interfaces, advanced transport,
+and sophisticated futuristic clothing.
 
-Make it look like a real high-quality photograph.
-
-Do not replace the person.
-Do not distort the face.
-Do not make it cartoon-like.
-Do not add text or logos.
-`;
-
-        } else {
-          return json(
-            { error: "Invalid option." },
-            400
-          );
-        }
-
-        const form = new FormData();
-
-        form.append("prompt", prompt);
-
-        form.append(
-          "input_image_0",
-          imageBlob,
-          "reference.jpg"
-        );
-
-        form.append("width", "1024");
-        form.append("height", "1024");
-
-        const formResponse = new Response(form);
-
-        const result = await env.AI.run(
-  "@cf/black-forest-labs/flux-2-klein-4b",
-  {
-    multipart: {
-      body: formResponse.body,
-      contentType: formResponse.headers.get("content-type")
-    }
-  }
-);
+The person's

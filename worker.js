@@ -1,13 +1,41 @@
 export default {
   async fetch(request, env) {
+
+    const cors = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type"
+    };
+
+    if (request.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: cors
+      });
+    }
+
+    const json = (data, status = 200) => {
+      return new Response(JSON.stringify(data), {
+        status,
+        headers: {
+          "Content-Type": "application/json",
+          ...cors
+        }
+      });
+    };
+
     const url = new URL(request.url);
 
-    if (url.pathname === "/api/generate" && request.method === "POST") {
+    if (
+      url.pathname === "/api/generate" &&
+      request.method === "POST"
+    ) {
       try {
+
         if (!env.AI) {
-          return Response.json(
+          return json(
             { error: "Workers AI binding is missing." },
-            { status: 500 }
+            500
           );
         }
 
@@ -17,27 +45,27 @@ export default {
         const option = body.option || body.year;
 
         if (!image) {
-          return Response.json(
+          return json(
             { error: "Photo is required." },
-            { status: 400 }
+            400
           );
         }
 
         if (!option) {
-          return Response.json(
+          return json(
             { error: "Please select an option." },
-            { status: 400 }
+            400
           );
         }
 
         const match = image.match(
-          /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/
+          /^data:(image\/[^;]+);base64,(.+)$/
         );
 
         if (!match) {
-          return Response.json(
-            { error: "Invalid uploaded image." },
-            { status: 400 }
+          return json(
+            { error: "Invalid image format." },
+            400
           );
         }
 
@@ -55,55 +83,124 @@ export default {
           type: contentType
         });
 
-        let prompt = "";
-
-        // =========================
-        // B&W OUTLINE
-        // =========================
+        let prompt;
 
         if (option === "bw") {
+
           prompt = `
-Use the uploaded reference photo as the source image.
+Use image 0 as the reference photograph.
 
-Create a premium black-and-white TIME TRAVEL OUTLINE
-PORTRAIT of the SAME PERSON from the reference photo.
+Create a premium black-and-white OUTLINE PORTRAIT
+of the same person.
 
-The person's identity must be preserved.
-
-Keep the same:
-- face
-- facial structure
-- eyes
-- nose
-- mouth
-- hairstyle
-- head shape
-- body proportions
-- pose
+Preserve the person's identity, face, facial structure,
+eyes, nose, mouth, hairstyle, head shape and pose.
 
 The person must remain clearly recognizable.
 
-Convert the photograph into sophisticated black ink
-and pencil line-art.
+Convert the photograph into detailed black ink and
+pencil line art on a mostly white background.
 
-IMPORTANT:
-This is an OUTLINE / SKETCH artwork, not a normal
+This MUST be an outline drawing, NOT a normal
 black-and-white photograph.
 
-Use a mostly WHITE background.
+Add elegant time-travel artwork around the person:
 
-Draw the person with detailed clean black outlines,
-fine pencil shading and professional artistic line work.
+- detailed vintage clock
+- clock hands
+- mechanical clock gears
+- several gears
+- artistic airplane
+- time-travel motion lines
+- subtle mechanical sketch details
 
-Add elegant time-travel elements around the person:
+Keep the person as the main subject.
 
-1. A large detailed vintage clock
-2. Visible clock hands
-3. Mechanical clock gears
-4. Several elegant gears around the composition
-5. A small artistic airplane
-6. Time-travel motion lines
-7. Subtle mechanical and futuristic sketch details
+Professional illustration.
+Realistic proportions.
+Detailed fine line work.
+Elegant premium composition.
 
-The clock, gears and airplane should be integrated
-naturally into the artwork.
+Do not create a blank image.
+Do not remove the person.
+Do not replace the person.
+Do not distort the face.
+Do not make it childish or cartoon-like.
+Do not add text or logos.
+`;
+
+        } else if (option === "2000") {
+
+          prompt = `
+Use image 0 as the reference photograph.
+
+Transform the same person into a realistic photograph
+representing the year 2000.
+
+Preserve the person's identity, face, facial structure,
+eyes, nose, mouth, hairstyle, body proportions and pose.
+
+Use authentic early-2000s clothing, hairstyles,
+technology, objects and surroundings.
+
+Remove clearly modern elements.
+
+Create a realistic early-2000s photograph.
+
+Do not replace the person.
+Do not distort the face.
+Do not make it cartoon-like.
+Do not add text or logos.
+`;
+
+        } else if (option === "2075") {
+
+          prompt = `
+Use image 0 as the reference photograph.
+
+Transform the same person into a realistic photograph
+representing a believable year 2075.
+
+Preserve the person's identity, face, facial structure,
+eyes, nose, mouth, hairstyle, body proportions and pose.
+
+Use believable futuristic clothing, architecture,
+transportation and advanced technology.
+
+Make it look like a real high-quality photograph.
+
+Do not replace the person.
+Do not distort the face.
+Do not make it cartoon-like.
+Do not add text or logos.
+`;
+
+        } else {
+          return json(
+            { error: "Invalid option." },
+            400
+          );
+        }
+
+        const form = new FormData();
+
+        form.append("prompt", prompt);
+
+        form.append(
+          "input_image_0",
+          imageBlob,
+          "reference.jpg"
+        );
+
+        form.append("width", "1024");
+        form.append("height", "1024");
+
+        const formResponse = new Response(form);
+
+        const result = await env.AI.run(
+          "@cf/black-forest-labs/flux-2-klein-4b",
+          {
+            multipart: {
+              body: formResponse.body,
+              contentType:
+                formResponse.headers.get("content

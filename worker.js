@@ -1,16 +1,19 @@
 export default {
   async fetch(request, env) {
-
     const url = new URL(request.url);
 
     if (url.pathname === "/api/generate" && request.method === "POST") {
-
       try {
+        if (!env.AI) {
+          return Response.json(
+            { error: "Workers AI binding is not configured." },
+            { status: 500 }
+          );
+        }
 
         const body = await request.json();
-
         const image = body.image;
-        const year = body.year;
+        const option = body.option || body.year;
 
         if (!image) {
           return Response.json(
@@ -19,190 +22,178 @@ export default {
           );
         }
 
-        if (!year) {
+        if (!option) {
           return Response.json(
-            { error: "Year is required." },
+            { error: "Please choose an option." },
             { status: 400 }
           );
         }
 
-        if (!env.AI) {
-          return Response.json(
-            { error: "Workers AI binding is not configured." },
-            { status: 500 }
-          );
-        }
-
-        let style = "";
-
-        if (year === "2000") {
-
-          style = `
-Make the uploaded photograph realistically look like it
-was taken around the year 2000.
-
-Use authentic early-2000s clothing, hairstyles,
-technology, objects, colors and surroundings.
-
-Remove modern-looking details where appropriate.
-
-Keep the result photorealistic and natural.
-`;
-
-        } else if (year === "2075") {
-
-          style = `
-Transform the uploaded photograph into a believable
-vision of the year 2075.
-
-Use realistic futuristic clothing, architecture,
-transportation, technology and surroundings.
-
-The future should look advanced but believable.
-
-Keep everything photorealistic.
-
-Do not make it cartoon-like.
-`;
-
-        } else if (
-          year === "bw" ||
-          year === "black-white" ||
-          year === "blackwhite"
-        ) {
-
-          style = `
-Convert the uploaded photograph into a beautiful
-high-quality realistic black and white photograph.
-
-Keep the person's identity, face, pose and composition.
-
-Use natural realistic grayscale tones,
-professional photography quality,
-good contrast and detailed facial features.
-
-Do not change the person's identity.
-`;
-
-        } else {
-
-          style = `
-Keep the uploaded photograph realistic and contemporary.
-
-Preserve the person's identity and appearance.
-
-Use realistic modern clothing, technology,
-architecture and surroundings.
-`;
-        }
-
-        const prompt = `
-Edit the uploaded photograph.
-
-${style}
-
-VERY IMPORTANT:
-
-Keep the same person recognizable.
-
-Preserve the person's facial identity,
-facial structure, facial proportions,
-pose and overall appearance as much as possible.
-
-Do NOT replace the person with another person.
-
-Do NOT create a different face.
-
-Only change clothing, surroundings, objects,
-technology, colors and other details necessary
-for the selected transformation.
-
-The final image must look like a real photograph
-taken with a high-quality camera.
-
-Natural skin texture.
-Realistic lighting.
-Realistic shadows.
-Realistic details.
-
-Selected transformation: ${year}
-`;
-
-        /*
-          Convert the incoming data URL into binary image data.
-        */
-
-        const matches = image.match(
-          /^data:(.+?);base64,(.+)$/
+        const match = image.match(
+          /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/
         );
 
-        if (!matches) {
+        if (!match) {
           return Response.json(
             { error: "Invalid image format." },
             { status: 400 }
           );
         }
 
-        const contentType = matches[1];
-        const base64Data = matches[2];
+        const contentType = match[1];
+        const base64 = match[2];
 
-        const binaryString = atob(base64Data);
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
 
-        const bytes = new Uint8Array(
-          binaryString.length
-        );
-
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
         }
 
-        const imageBlob = new Blob(
-          [bytes],
-          { type: contentType }
-        );
+        const imageBlob = new Blob([bytes], {
+          type: contentType
+        });
 
-        /*
-          Create multipart form data for FLUX.2 Klein 4B.
-        */
+        let prompt = "";
+
+        if (
+          option === "bw" ||
+          option === "black-white"
+        ) {
+          prompt = `
+Transform the uploaded person's photograph into a
+beautiful detailed black-and-white TIME TRAVEL OUTLINE
+ARTWORK.
+
+IMPORTANT:
+
+Preserve the same person's identity, face shape,
+facial features, hairstyle, pose and recognizable
+appearance as accurately as possible.
+
+Create a clean artistic black ink and pencil outline
+illustration on a mostly white background.
+
+The person must remain the main subject.
+
+Add elegant time-travel themed drawing elements around
+the person:
+
+- a detailed vintage clock
+- visible clock hands
+- clock gears and mechanical components
+- an artistic aeroplane / airplane drawing
+- subtle time-travel motion lines and sketch details
+
+Integrate the clock, gears and aeroplane naturally into
+the composition rather than randomly placing them.
+
+Use fine black outlines, detailed line work,
+professional illustration quality and realistic
+proportions.
+
+It should look like a sophisticated hand-drawn
+ink/pencil portrait, NOT a childish cartoon.
+
+Keep the person's face recognizable.
+
+Do not replace the person with another person.
+
+Do not distort the face.
+
+Do not add random text or logos.
+
+Final style:
+premium black-and-white time-travel portrait,
+clean white background, detailed outline drawing,
+clock + gears + aeroplane.
+`;
+        }
+
+        else if (option === "2000") {
+          prompt = `
+Edit the uploaded photograph so it realistically looks
+like it was taken around the year 2000.
+
+Preserve the SAME person's identity, face, facial
+structure, facial proportions, pose and recognizable
+appearance.
+
+Use authentic early-2000s clothing, hairstyles,
+technology, objects, colors, interiors and surroundings.
+
+Remove clearly modern-looking details where appropriate.
+
+Use realistic early-2000s photography characteristics
+without making the image look artificially old.
+
+Create a highly realistic photograph.
+
+Do not replace the person.
+
+Do not change the person's identity.
+
+Do not make it cartoon-like.
+
+No text or logos.
+`;
+        }
+
+        else if (option === "2075") {
+          prompt = `
+Transform the uploaded photograph into a believable
+vision of the year 2075.
+
+Preserve the SAME person's identity, face, facial
+structure, facial proportions, pose and recognizable
+appearance.
+
+Only transform clothing, surroundings, architecture,
+technology, transportation and objects to represent
+a believable year 2075.
+
+Use advanced but physically believable technology,
+futuristic architecture, elegant futuristic clothing,
+advanced transportation and realistic environmental
+details.
+
+The result must look like a real high-quality photograph
+from a believable future.
+
+Do not replace the person.
+
+Do not create a different face.
+
+Do not make it cartoon-like.
+
+No text or logos.
+`;
+        }
+
+        else {
+          return Response.json(
+            { error: "Invalid option." },
+            { status: 400 }
+          );
+        }
 
         const form = new FormData();
 
-        form.append(
-          "prompt",
-          prompt
-        );
+        form.append("prompt", prompt);
 
         form.append(
           "input_image_0",
           imageBlob,
-          "input.png"
+          "input.jpg"
         );
 
-        form.append(
-          "width",
-          "1024"
-        );
-
-        form.append(
-          "height",
-          "1024"
-        );
-
-        /*
-          Serialize FormData so Cloudflare can send
-          the correct multipart boundary.
-        */
+        form.append("width", "1024");
+        form.append("height", "1024");
 
         const formResponse = new Response(form);
-
         const formStream = formResponse.body;
-
         const formContentType =
           formResponse.headers.get("content-type");
-
-        /*
-          Run Cloudflare Workers AI.
-        */
 
         const result = await env.AI.run(
           "@cf/black-forest-labs/flux-2-klein-4b",
@@ -217,30 +208,25 @@ Selected transformation: ${year}
         if (!result || !result.image) {
           return Response.json(
             {
-              error: "AI did not return an image."
+              error: "Cloudflare AI did not return an image."
             },
-            {
-              status: 500
-            }
+            { status: 500 }
           );
         }
 
         return Response.json({
           image: `data:image/png;base64,${result.image}`,
-          year: year
+          option
         });
 
       } catch (error) {
-
         return Response.json(
           {
             error:
               error?.message ||
               "Cloudflare AI generation failed."
           },
-          {
-            status: 500
-          }
+          { status: 500 }
         );
       }
     }

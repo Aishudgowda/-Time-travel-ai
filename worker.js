@@ -203,4 +203,5 @@ Do not add text or logos.
             multipart: {
               body: formResponse.body,
               contentType:
-                formResponse.headers.get("content
+                contentType:
+  formResponse.headers.get("content-type")

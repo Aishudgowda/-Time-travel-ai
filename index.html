@@ -9,65 +9,60 @@
   <style>
     * {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
     }
 
     body {
+      margin: 0;
       min-height: 100vh;
-      background: linear-gradient(135deg, #080b18, #171b3d);
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #312e81, #581c87);
       color: white;
+      padding: 25px 15px;
     }
 
     .container {
       width: 100%;
-      max-width: 900px;
+      max-width: 650px;
       margin: auto;
-      padding: 50px 20px;
       text-align: center;
     }
 
     .logo {
-      font-size: 18px;
+      font-size: 22px;
       font-weight: bold;
-      letter-spacing: 2px;
-      margin-bottom: 50px;
-    }
-
-    h1 {
-      font-size: 52px;
-      line-height: 1.1;
       margin-bottom: 20px;
     }
 
+    h1 {
+      font-size: 36px;
+      margin: 10px 0;
+    }
+
     .subtitle {
-      color: #b8bdd8;
-      font-size: 18px;
-      max-width: 620px;
-      margin: 0 auto 40px;
+      color: #d1d5db;
+      line-height: 1.6;
+      margin-bottom: 25px;
     }
 
     .card {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
       border-radius: 25px;
-      padding: 35px;
+      padding: 25px;
       backdrop-filter: blur(15px);
     }
 
     .upload {
       display: block;
-      border: 2px dashed #777da8;
+      border: 2px dashed rgba(255,255,255,0.4);
       border-radius: 20px;
-      padding: 45px 20px;
+      padding: 35px 20px;
       cursor: pointer;
       transition: 0.2s;
     }
 
     .upload:hover {
-      border-color: white;
-      background: rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.08);
     }
 
     .upload input {
@@ -76,88 +71,98 @@
 
     .upload-icon {
       font-size: 45px;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
     .upload-title {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: bold;
-      margin-bottom: 8px;
     }
 
     .upload-text {
-      color: #aaaec7;
+      color: #d1d5db;
+      margin-top: 8px;
+      font-size: 14px;
     }
 
     #preview {
       display: none;
       width: 100%;
-      max-width: 350px;
-      max-height: 400px;
-      object-fit: cover;
-      margin: 25px auto;
+      max-width: 500px;
+      max-height: 500px;
+      object-fit: contain;
+      margin: 20px auto;
       border-radius: 18px;
+      border: 2px solid rgba(255,255,255,0.25);
     }
 
     .choose-title {
-      margin-top: 30px;
-      margin-bottom: 15px;
       font-size: 18px;
+      font-weight: bold;
+      margin: 25px 0 15px;
     }
 
     .years {
       display: flex;
+      gap: 10px;
       justify-content: center;
-      gap: 12px;
       flex-wrap: wrap;
-      margin-bottom: 25px;
     }
 
     .year {
-      padding: 14px 24px;
-      border-radius: 14px;
-      border: 1px solid #555b82;
-      background: transparent;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.1);
       color: white;
+      padding: 12px 22px;
+      border-radius: 12px;
       cursor: pointer;
       font-size: 16px;
     }
 
     .year.selected {
       background: white;
-      color: #101226;
-      border-color: white;
+      color: #312e81;
+      font-weight: bold;
     }
 
     .generate {
       width: 100%;
-      max-width: 400px;
-      padding: 17px;
+      margin-top: 25px;
+      padding: 16px;
       border: none;
-      border-radius: 15px;
+      border-radius: 14px;
       background: white;
-      color: #101226;
-      font-size: 17px;
+      color: #312e81;
+      font-size: 18px;
       font-weight: bold;
       cursor: pointer;
     }
 
-    .generate:hover {
-      transform: translateY(-1px);
+    .generate:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     #message {
       margin-top: 20px;
-      color: #b8bdd8;
+      line-height: 1.5;
+      color: #e5e7eb;
     }
 
-    @media (max-width: 600px) {
+    #resultTitle {
+      display: none;
+      font-size: 20px;
+      font-weight: bold;
+      margin-top: 25px;
+    }
+
+    @media (max-width: 500px) {
       h1 {
-        font-size: 38px;
+        font-size: 29px;
       }
 
       .card {
-        padding: 20px;
+        padding: 18px;
       }
     }
   </style>
@@ -172,15 +177,21 @@
     <h1>See Yourself Across Time</h1>
 
     <p class="subtitle">
-      Upload your photo and discover an AI-created version of yourself
+      Upload your photo and discover how you could look
       in the past or future.
     </p>
 
     <div class="card">
 
+      <!-- PHOTO UPLOAD -->
       <label class="upload">
-<input type="file" id="photoInput" accept="image/*"
-onchange="document.getElementById('preview').src=URL.createObjectURL(this.files[0]); document.getElementById('preview').style.display='block';">
+
+        <input
+          type="file"
+          id="photoInput"
+          accept="image/*"
+        >
+
         <div class="upload-icon">📸</div>
 
         <div class="upload-title">
@@ -190,145 +201,355 @@ onchange="document.getElementById('preview').src=URL.createObjectURL(this.files[
         <div class="upload-text">
           Choose a clear photo to begin
         </div>
+
       </label>
 
-      <img id="preview" alt="Uploaded photo">
 
+      <!-- ORIGINAL PHOTO PREVIEW -->
+      <img
+        id="preview"
+        alt="Uploaded photo preview"
+      >
+
+
+      <!-- YEAR -->
       <div class="choose-title">
         Choose your time period
       </div>
 
       <div class="years">
 
-        <button class="year" onclick="selectYear(this, '2000')">
+        <button
+          class="year"
+          onclick="selectYear(this, '2000')"
+        >
           🕰️ 2000
         </button>
 
-        <button class="year" onclick="selectYear(this, '2026')">
+        <button
+          class="year"
+          onclick="selectYear(this, '2026')"
+        >
           📅 2026
         </button>
 
-        <button class="year" onclick="selectYear(this, '2075')">
+        <button
+          class="year"
+          onclick="selectYear(this, '2075')"
+        >
           🚀 2075
         </button>
 
       </div>
 
-      <button class="generate" onclick="generate()">
-        Generate My Time Travel ✨
+
+      <!-- GENERATE -->
+      <button
+        class="generate"
+        id="generateButton"
+        onclick="generate()"
+      >
+        ✨ Generate My Time Travel
       </button>
 
+
+      <!-- MESSAGE -->
       <div id="message"></div>
+
+
+      <!-- RESULT -->
+      <div id="resultTitle">
+        ✨ Your Time Travel Result
+      </div>
+
+      <img
+        id="result"
+        alt="Generated time travel image"
+        style="
+          display:none;
+          width:100%;
+          max-width:500px;
+          max-height:600px;
+          object-fit:contain;
+          margin:20px auto;
+          border-radius:18px;
+        "
+      >
 
     </div>
 
   </div>
 
-  <script>
 
-    let selectedYear = "";
+<script>
 
-    function selectYear(button, year) {
+let selectedYear = "";
 
-      document.querySelectorAll(".year").forEach(function(btn) {
-        btn.classList.remove("selected");
-      });
 
-      button.classList.add("selected");
+// -------------------------
+// YEAR SELECTION
+// -------------------------
 
-      selectedYear = year;
+function selectYear(button, year) {
+
+  document.querySelectorAll(".year").forEach(function(btn) {
+    btn.classList.remove("selected");
+  });
+
+  button.classList.add("selected");
+
+  selectedYear = year;
+}
+
+
+// -------------------------
+// PHOTO PREVIEW
+// -------------------------
+
+document
+  .getElementById("photoInput")
+  .addEventListener("change", function(event) {
+
+    const file = event.target.files[0];
+
+    if (!file) {
+      return;
     }
 
-    document.getElementById("photoInput").addEventListener("change", function(event) {
+    const preview = document.getElementById("preview");
 
-      const file = event.target.files[0];
+    const imageURL = URL.createObjectURL(file);
 
-      if (file) {
+    preview.src = imageURL;
 
-        const preview = document.getElementById("preview");
+    preview.style.display = "block";
 
-        preview.src = URL.createObjectURL(file);
+    document.getElementById("message").innerText =
+      "✅ Photo selected successfully.";
 
-        preview.style.display = "block";
+});
+
+
+// -------------------------
+// COMPRESS IMAGE
+// -------------------------
+
+function prepareImage(file) {
+
+  return new Promise(function(resolve, reject) {
+
+    const img = new Image();
+
+    img.onload = function() {
+
+      const maxSize = 1536;
+
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height && width > maxSize) {
+
+        height = height * maxSize / width;
+        width = maxSize;
+
+      } else if (height > maxSize) {
+
+        width = width * maxSize / height;
+        height = maxSize;
+
       }
 
-    });
+      const canvas = document.createElement("canvas");
 
-    async function generate() {
+      canvas.width = Math.round(width);
+      canvas.height = Math.round(height);
 
-  const file = document.getElementById("photoInput").files[0];
-  const message = document.getElementById("message");
-  const preview = document.getElementById("preview");
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(
+        img,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+      );
+
+      resolve(
+        canvas.toDataURL(
+          "image/jpeg",
+          0.9
+        )
+      );
+
+    };
+
+    img.onerror = function() {
+      reject(
+        new Error("Could not process the photo.")
+      );
+    };
+
+    img.src = URL.createObjectURL(file);
+
+  });
+
+}
+
+
+// -------------------------
+// GENERATE AI IMAGE
+// -------------------------
+
+async function generate() {
+
+  const file =
+    document.getElementById("photoInput").files[0];
+
+  const message =
+    document.getElementById("message");
+
+  const result =
+    document.getElementById("result");
+
+  const resultTitle =
+    document.getElementById("resultTitle");
+
+  const button =
+    document.getElementById("generateButton");
+
+
+  // PHOTO CHECK
 
   if (!file) {
-    message.innerText = "Please upload a photo first.";
+
+    message.innerText =
+      "⚠️ Please upload a photo first.";
+
     return;
   }
+
+
+  // YEAR CHECK
 
   if (!selectedYear) {
-    message.innerText = "Please choose a year first.";
+
+    message.innerText =
+      "⚠️ Please choose a year first.";
+
     return;
   }
 
-  message.innerText = "✨ Creating your time-travel photo... Please wait.";
+
+  // START
+
+  button.disabled = true;
+
+  button.innerText =
+    "✨ Creating your time-travel photo...";
+
+  message.innerText =
+    "⏳ AI is creating your photo. Please wait...";
+
+  result.style.display = "none";
+
+  resultTitle.style.display = "none";
+
 
   try {
 
-    const reader = new FileReader();
+    // Prepare image
 
-    reader.onload = async function () {
+    const image =
+      await prepareImage(file);
 
-      const image = reader.result;
 
-      const response = await fetch("/api/generate", {
+    // Send to Worker
+
+    const response =
+      await fetch("/api/generate", {
+
         method: "POST",
+
         headers: {
           "Content-Type": "application/json"
         },
+
         body: JSON.stringify({
+
           image: image,
+
           year: selectedYear
+
         })
+
       });
 
-      const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "AI generation failed");
-      }
+    const data =
+      await response.json();
 
-      if (!data.image) {
-        throw new Error("No image received from AI");
-      }
 
-      preview.src = data.image;
-      preview.style.display = "block";
+    if (!response.ok) {
 
-      message.innerText =
-        "✨ Your " + selectedYear + " time-travel photo is ready!";
+      throw new Error(
+        data.error ||
+        "AI generation failed."
+      );
 
-    };
+    }
 
-    reader.onerror = function () {
-      throw new Error("Could not read the photo");
-    };
 
-    reader.readAsDataURL(file);
+    if (!data.image) {
+
+      throw new Error(
+        "AI did not return an image."
+      );
+
+    }
+
+
+    // SHOW RESULT
+
+    result.src = data.image;
+
+    result.style.display = "block";
+
+    resultTitle.style.display = "block";
+
+    message.innerText =
+      "🎉 Your " +
+      selectedYear +
+      " time-travel photo is ready!";
+
+
+    // Scroll to result
+
+    result.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+
 
   } catch (error) {
 
     console.error(error);
 
     message.innerText =
-      "❌ " + (error.message || "Something went wrong.");
+      "❌ " +
+      (error.message ||
+      "Something went wrong.");
 
   }
+
+
+  button.disabled = false;
+
+  button.innerText =
+    "✨ Generate My Time Travel";
+
 }
 
-      
-    }
-
-  </script>
+</script>
 
 </body>
 </html>

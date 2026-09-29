@@ -228,7 +228,7 @@
 
         <button
           class="year"
-          onclick="selectYear(this, '2026')"
+          onclick="selectYear(this, 'bw')"
         >
           📅 2026
         </button>
@@ -342,7 +342,7 @@ function prepareImage(file) {
 
     img.onload = function() {
 
-      const maxSize = 1536;
+      const maxSize = 480;
 
       let width = img.width;
       let height = img.height;
@@ -477,7 +477,7 @@ const response = await fetch("https://time-travel-ai.aishudgowda2004.workers.dev
 
           image: image,
 
-          year: selectedYear
+          option: selectedYear
 
         })
 

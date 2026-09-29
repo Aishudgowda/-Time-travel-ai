@@ -198,10 +198,11 @@ Do not add text or logos.
         const formResponse = new Response(form);
 
         const result = await env.AI.run(
-          "@cf/black-forest-labs/flux-2-klein-4b",
-          {
-            multipart: {
-              body: formResponse.body,
-              contentType:
-                contentType:
-  formResponse.headers.get("content-type")
+  "@cf/black-forest-labs/flux-2-klein-4b",
+  {
+    multipart: {
+      body: formResponse.body,
+      contentType: formResponse.headers.get("content-type")
+    }
+  }
+);
